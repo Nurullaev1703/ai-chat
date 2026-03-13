@@ -6,14 +6,14 @@ import {ConfigService} from "@nestjs/config";
     imports:[
         TypeOrmModule.forRootAsync({
             useFactory: (configService: ConfigService) => ({
-                type: 'mysql',
-                host: configService.getOrThrow("MYSQL_HOST"),
-                port: configService.getOrThrow("MYSQL_PORT"),
-                username: configService.getOrThrow("MYSQL_USERNAME"),
-                password: configService.getOrThrow("MYSQL_PASSWORD"),
-                database: configService.getOrThrow("MYSQL_DATABASE"),
+                type: 'postgres',
+                host: configService.get<string>("DATABASE_HOST", "localhost"),
+                port: configService.get<number>("DATABASE_PORT", 5432),
+                username: configService.get<string>("DATABASE_USER", "postgres"),
+                password: configService.get<string>("DATABASE_PASSWORD", "postgres"),
+                database: configService.get<string>("DATABASE_NAME", "ai_chat"),
                 autoLoadEntities: true,
-                synchronize: true
+                synchronize: true // В продакшене лучше использовать миграции
             }),
             inject:[ConfigService]
         })
