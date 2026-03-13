@@ -1,5 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useToastContext } from "./ToastContext";
+import { ChatApiService } from "@/services/chatService";
 
 export interface Message {
   id: string;
@@ -10,7 +12,6 @@ export interface Message {
 
 interface ChatContextType {
   messages: Message[];
-  setMessages: React.Dispatch<React.SetStateAction<Message[]>>;
   isHistoryLoading: boolean;
   clearHistory: () => Promise<void>;
   sendMessage: (content: string) => Promise<void>;
@@ -21,42 +22,65 @@ const ChatContext = createContext<ChatContextType | undefined>(undefined);
 
 export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [messages, setMessages] = useState<Message[]>([]);
-  const [isHistoryLoading, setIsHistoryLoading] = useState(true);
-  const [isSending, setIsSending] = useState(false);
   const { addToast } = useToastContext();
+  const queryClient = useQueryClient();
 
-  // Fetch history on mount
+  // Fetch history using React Query
+  const { data: history, isLoading: isHistoryLoading } = useQuery({
+    queryKey: ["chat-history"],
+    queryFn: () => ChatApiService.getHistory(),
+  });
+
+  // Sync messages state with history data
   useEffect(() => {
-    const fetchHistory = async () => {
-      try {
-        const res = await fetch("http://localhost:3000/chat/history");
-        const data = await res.json();
-        if (Array.isArray(data)) {
-          setMessages(data);
-        }
-      } catch (err) {
-        console.error("Failed to fetch history:", err);
-      } finally {
-        setIsHistoryLoading(false);
-      }
-    };
-    fetchHistory();
-  }, []);
+    if (history) {
+      setMessages(history);
+    }
+  }, [history]);
 
-  const clearHistory = useCallback(async () => {
-    try {
-      await fetch("http://localhost:3000/chat/history", { method: "DELETE" });
+  // Mutation for clearing history
+  const clearMutation = useMutation({
+    mutationFn: () => ChatApiService.clearHistory(),
+    onSuccess: () => {
       setMessages([]);
+      queryClient.setQueryData(["chat-history"], []);
       addToast("История чата успешно очищена", "success");
-    } catch (error) {
+    },
+    onError: (error: any) => {
       console.error("Failed to clear history:", error);
       addToast("Не удалось очистить историю", "error");
-      throw error;
-    }
-  }, [addToast]);
+    },
+  });
+
+  // Mutation for sending messages
+  const sendMutation = useMutation({
+    mutationFn: (content: string) => ChatApiService.sendMessage(content),
+    onSuccess: (data) => {
+      const assistantMessage: Message = {
+        id: Date.now().toString(),
+        role: "assistant",
+        content: data.text,
+      };
+      setMessages((prev) => [...prev, assistantMessage]);
+    },
+    onError: (error: any) => {
+      console.error("Chat Error:", error);
+      const errorMessage: Message = {
+        id: Date.now().toString(),
+        role: "assistant",
+        content: "Извините, произошла ошибка. Пожалуйста, попробуйте позже.",
+      };
+      setMessages((prev) => [...prev, errorMessage]);
+      addToast("Ошибка при отправке сообщения", "error");
+    },
+  });
+
+  const clearHistory = useCallback(async () => {
+    await clearMutation.mutateAsync();
+  }, [clearMutation]);
 
   const sendMessage = useCallback(async (content: string) => {
-    if (!content.trim() || isSending) return;
+    if (!content.trim() || sendMutation.isPending) return;
 
     const userMessage: Message = {
       id: Date.now().toString(),
@@ -65,52 +89,17 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
 
     setMessages((prev) => [...prev, userMessage]);
-    setIsSending(true);
-
-    try {
-      const response = await fetch("http://localhost:3000/chat/send", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ message: content }),
-      });
-
-      if (!response.ok) {
-        throw new Error("Failed to get response from server");
-      }
-
-      const data = await response.json();
-      
-      const assistantMessage: Message = {
-        id: (Date.now() + 1).toString(),
-        role: "assistant",
-        content: data.text,
-      };
-      
-      setMessages((prev) => [...prev, assistantMessage]);
-    } catch (error) {
-      console.error("Chat Error:", error);
-      const errorMessage: Message = {
-        id: (Date.now() + 1).toString(),
-        role: "assistant",
-        content: "Извините, произошла ошибка. Пожалуйста, попробуйте позже.",
-      };
-      setMessages((prev) => [...prev, errorMessage]);
-    } finally {
-      setIsSending(false);
-    }
-  }, [isSending]);
+    sendMutation.mutate(content);
+  }, [sendMutation]);
 
   return (
     <ChatContext.Provider
       value={{
         messages,
-        setMessages,
         isHistoryLoading,
         clearHistory,
         sendMessage,
-        isSending,
+        isSending: sendMutation.isPending,
       }}
     >
       {children}
