@@ -1,4 +1,4 @@
-const baseUrl = import.meta.env.VITE_API_URL || "http://localhost:3000";
+export const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3000";
 
 // Данные необходимые для запроса
 interface RequestOptions {
@@ -22,7 +22,7 @@ class ApiService {
     if (url.includes("http://") || url.includes("https://")) {
       return url;
     }
-    return baseUrl + url;
+    return API_URL + url;
   }
 
   // Проверка необходимости отправки токена

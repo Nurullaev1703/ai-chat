@@ -11,7 +11,7 @@ export const Home: React.FC = () => {
   const handleSend = async () => {
     if (!input.trim() || isSending) return;
     const currentInput = input;
-    setInput(""); // Clear input immediately for better UX
+    setInput("");
     await sendMessage(currentInput);
   };
 

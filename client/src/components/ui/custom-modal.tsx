@@ -8,6 +8,7 @@ interface CustomModalProps {
   title: string;
   description?: string;
   children: React.ReactNode;
+  footer?: React.ReactNode;
   className?: string;
 }
 
@@ -17,28 +18,22 @@ export const CustomModal: React.FC<CustomModalProps> = ({
   title,
   description,
   children,
+  footer,
   className,
 }) => {
-  // Предотвращаем скролл body при открытом модальном окне
   useEffect(() => {
     if (isOpen) {
-      const originalStyle = document.body.style.overflow;
       document.body.style.overflow = "hidden";
-
       return () => {
-        document.body.style.overflow = originalStyle;
+        document.body.style.overflow = "unset";
       };
     }
   }, [isOpen]);
 
-  // Закрытие по ESC
   useEffect(() => {
     const handleEscape = (e: KeyboardEvent) => {
-      if (e.key === "Escape" && isOpen) {
-        onClose();
-      }
+      if (e.key === "Escape" && isOpen) onClose();
     };
-
     if (isOpen) {
       document.addEventListener("keydown", handleEscape);
       return () => document.removeEventListener("keydown", handleEscape);
@@ -48,48 +43,44 @@ export const CustomModal: React.FC<CustomModalProps> = ({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50">
-      {/* Overlay */}
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+      {/* Backdrop */}
       <div
-        className="fixed inset-0 bg-light-gray/80 animate-in fade-in-0 custom-modal-overlay"
+        className="absolute inset-0 bg-background/60 backdrop-blur-sm animate-in fade-in duration-300"
         onClick={onClose}
       />
 
-      {/* Modal Content */}
+      {/* Modal Card */}
       <div
         className={cn(
-          "fixed left-[50%] top-[50%] z-50 grid w-full max-w-lg translate-x-[-50%] translate-y-[-50%] gap-4 border border-primary-gray bg-white p-0 shadow-lg duration-200 animate-in fade-in-0 zoom-in-95 slide-in-from-left-1/2 slide-in-from-top-[48%] sm:rounded-xl",
-          "max-w-[calc(100%-32px)] max-h-screen rounded-xl flex flex-col custom-modal-content",
+          "relative w-full max-w-md glass-dark rounded-[2rem] border border-white/10 shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-300",
           className
         )}
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Scrollable Content */}
-        <div className="flex flex-col flex-1 h-full max-h-screen overflow-y-auto custom-modal-scrollable p-4">
-          {/* Header */}
-          <div className="flex flex-col space-y-1.5 text-center sm:text-left mb-4 px-2">
-            <div className="flex items-center justify-between">
-              <h2 className="text-lg font-semibold leading-none tracking-tight text-primary-blue">
-                {title}
-              </h2>
-              <button
-                onClick={onClose}
-                className="rounded-xl opacity-70 ring-offset-light-gray transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-dark-blue focus:ring-offset-2 w-11 h-11 flex items-center justify-center"
-              >
-                <X className="h-4 w-4 text-dark-gray" />
-                <span className="sr-only">Закрыть</span>
-              </button>
-            </div>
-            {description && (
-              <p className="text-sm text-primary-gray">{description}</p>
-            )}
-          </div>
-
-          {/* Content */}
-          <div className="flex-1 overflow-y-auto custom-modal-scrollable px-2">
-            {children}
-          </div>
+        {/* Header */}
+        <div className="flex items-center justify-between px-6 py-4 border-b border-white/5">
+          <h2 className="text-lg font-semibold text-white/90">{title}</h2>
+          <button
+            onClick={onClose}
+            className="size-8 flex items-center justify-center rounded-full hover:bg-white/5 transition-colors text-white/40 hover:text-white"
+          >
+            <X size={18} />
+          </button>
         </div>
+
+        {/* Content */}
+        <div className="px-6 py-6 text-white/60 text-sm leading-relaxed">
+          {description && <p className="mb-4">{description}</p>}
+          {children}
+        </div>
+
+        {/* Footer */}
+        {footer && (
+          <div className="px-6 py-4 bg-white/[0.02] border-t border-white/5 flex justify-end gap-3">
+            {footer}
+          </div>
+        )}
       </div>
     </div>
   );

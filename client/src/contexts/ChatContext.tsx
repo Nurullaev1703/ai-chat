@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from "react";
+import { useToastContext } from "./ToastContext";
 
 export interface Message {
   id: string;
@@ -22,6 +23,7 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [messages, setMessages] = useState<Message[]>([]);
   const [isHistoryLoading, setIsHistoryLoading] = useState(true);
   const [isSending, setIsSending] = useState(false);
+  const { addToast } = useToastContext();
 
   // Fetch history on mount
   useEffect(() => {
@@ -42,16 +44,16 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
 
   const clearHistory = useCallback(async () => {
-    if (!confirm("Вы уверены, что хотите удалить все сообщения?")) return;
-    
     try {
       await fetch("http://localhost:3000/chat/history", { method: "DELETE" });
       setMessages([]);
+      addToast("История чата успешно очищена", "success");
     } catch (error) {
       console.error("Failed to clear history:", error);
+      addToast("Не удалось очистить историю", "error");
       throw error;
     }
-  }, []);
+  }, [addToast]);
 
   const sendMessage = useCallback(async (content: string) => {
     if (!content.trim() || isSending) return;
