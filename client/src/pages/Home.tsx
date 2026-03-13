@@ -8,7 +8,7 @@ export const Home: React.FC = () => {
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 
-  const handleSend = () => {
+  const handleSend = async () => {
     if (!input.trim() || isLoading) return;
 
     const userMessage: Message = {
@@ -21,18 +21,39 @@ export const Home: React.FC = () => {
     setInput("");
     setIsLoading(true);
 
-    // Simulate AI Response
-    setTimeout(() => {
+    try {
+      const response = await fetch("http://localhost:3000/chat/send", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ message: input }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to get response from server");
+      }
+
+      const data = await response.json();
+      
       const assistantMessage: Message = {
         id: (Date.now() + 1).toString(),
         role: "assistant",
-        content: `Это демонстрационный ответ. В реальном приложении здесь будет ответ от вашей нейросети. 
-        
-Вы сказали: "${input}"`,
+        content: data.text,
       };
+      
       setMessages((prev) => [...prev, assistantMessage]);
+    } catch (error) {
+      console.error("Chat Error:", error);
+      const errorMessage: Message = {
+        id: (Date.now() + 1).toString(),
+        role: "assistant",
+        content: "Извините, произошла ошибка при получении ответа. Пожалуйста, попробуйте позже.",
+      };
+      setMessages((prev) => [...prev, errorMessage]);
+    } finally {
       setIsLoading(false);
-    }, 1500);
+    }
   };
 
   return (
@@ -46,10 +67,10 @@ export const Home: React.FC = () => {
             Чем я могу помочь?
           </h2>
           <p className="text-white/40 text-center max-w-sm mb-12">
-            Спрашивайте о чем угодно — от написания кода до планирования путешествия. 
-            Я поддержу разговор на любую тему.
+            Спрашивайте о чем угодно — от написания кода до планирования
+            путешествия. Я поддержу разговор на любую тему.
           </p>
-          
+
           <div className="grid gap-3 w-full max-w-md">
             {[
               "Напиши стихотворение о космосе",

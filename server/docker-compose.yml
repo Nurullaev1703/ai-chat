@@ -9,6 +9,8 @@ services:
       - DATABASE_USER=${DATABASE_USER:-postgres}
       - DATABASE_PASSWORD=${DATABASE_PASSWORD:-postgres}
       - DATABASE_NAME=${DATABASE_NAME:-ai_chat}
+      - GITHUB_TOKEN=${GITHUB_TOKEN}
+      - GITHUB_MODEL=${GITHUB_MODEL:-gpt-4o}
     depends_on:
       db:
         condition: service_healthy

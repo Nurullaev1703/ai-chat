@@ -34,6 +34,8 @@
   --animate-accordion-down: accordion-down 0.2s ease-out;
   --animate-accordion-up: accordion-up 0.2s ease-out;
   --animate-progress-indeterminate: progress-indeterminate 1.5s infinite linear;
+  --animate-pulse-subtle: pulse-subtle 2s infinite ease-in-out;
+  --animate-audio-wave: audio-wave 1s infinite ease-in-out;
 
   @keyframes accordion-down {
     from { height: 0; }
@@ -46,6 +48,14 @@
   @keyframes progress-indeterminate {
     0% { transform: translateX(-100%); }
     100% { transform: translateX(100%); }
+  }
+  @keyframes pulse-subtle {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.85; transform: scale(0.995); }
+  }
+  @keyframes audio-wave {
+    0%, 100% { height: 40%; }
+    50% { height: 100%; }
   }
 }
 
