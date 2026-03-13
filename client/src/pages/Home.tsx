@@ -1,65 +1,33 @@
 import React, { useState } from "react";
 import { ChatInput } from "@/components/chat/ChatInput";
-import { MessageList, Message } from "@/components/chat/MessageList";
-import { Sparkles } from "lucide-react";
+import { MessageList } from "@/components/chat/MessageList";
+import { Sparkles, Loader2 } from "lucide-react";
+import { useChat } from "@/contexts/ChatContext";
 
 export const Home: React.FC = () => {
-  const [messages, setMessages] = useState<Message[]>([]);
+  const { messages, isHistoryLoading, sendMessage, isSending } = useChat();
   const [input, setInput] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
 
   const handleSend = async () => {
-    if (!input.trim() || isLoading) return;
-
-    const userMessage: Message = {
-      id: Date.now().toString(),
-      role: "user",
-      content: input,
-    };
-
-    setMessages((prev) => [...prev, userMessage]);
-    setInput("");
-    setIsLoading(true);
-
-    try {
-      const response = await fetch("http://localhost:3000/chat/send", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ message: input }),
-      });
-
-      if (!response.ok) {
-        throw new Error("Failed to get response from server");
-      }
-
-      const data = await response.json();
-      
-      const assistantMessage: Message = {
-        id: (Date.now() + 1).toString(),
-        role: "assistant",
-        content: data.text,
-      };
-      
-      setMessages((prev) => [...prev, assistantMessage]);
-    } catch (error) {
-      console.error("Chat Error:", error);
-      const errorMessage: Message = {
-        id: (Date.now() + 1).toString(),
-        role: "assistant",
-        content: "Извините, произошла ошибка при получении ответа. Пожалуйста, попробуйте позже.",
-      };
-      setMessages((prev) => [...prev, errorMessage]);
-    } finally {
-      setIsLoading(false);
-    }
+    if (!input.trim() || isSending) return;
+    const currentInput = input;
+    setInput(""); // Clear input immediately for better UX
+    await sendMessage(currentInput);
   };
+
+  if (isHistoryLoading) {
+    return (
+      <div className="flex-1 flex flex-col items-center justify-center p-4 min-h-[calc(100vh-8rem)]">
+        <Loader2 className="size-8 text-primary animate-spin mb-4" />
+        <p className="text-white/40 text-sm animate-pulse">Загрузка истории...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col min-h-[calc(100vh-8rem)] relative">
       {messages.length === 0 ? (
-        <div className="flex-1 flex flex-col items-center justify-center p-4 animate-in fade-in duration-700">
+        <div className="flex-1 flex flex-col items-center justify-center p-4 animate-in fade-in zoom-in duration-700">
           <div className="size-16 bg-primary/10 rounded-2xl flex items-center justify-center mb-6 border border-primary/20 shadow-lg">
             <Sparkles className="text-primary size-8" />
           </div>
@@ -88,19 +56,19 @@ export const Home: React.FC = () => {
           </div>
         </div>
       ) : (
-        <div className="flex-1 overflow-y-auto pt-4 px-4">
+        <div className="flex-1 overflow-y-auto pt-4 px-4 pb-32">
           <MessageList messages={messages} />
         </div>
       )}
 
       {/* Floating Input Area */}
-      <div className="fixed bottom-0 left-0 right-0 p-4 md:p-8 bg-linear-to-t from-background via-background/90 to-transparent pointer-events-none">
+      <div className="fixed bottom-0 left-0 right-0 p-4 md:p-8 bg-gradient-to-t from-background via-background/90 to-transparent pointer-events-none">
         <div className="pointer-events-auto w-full">
           <ChatInput
             value={input}
             onChange={setInput}
             onSend={handleSend}
-            isLoading={isLoading}
+            isLoading={isSending}
           />
         </div>
       </div>
